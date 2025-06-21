@@ -8,6 +8,7 @@ import com.armilp.ezweight.player.PlayerWeightHandler;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -18,18 +19,19 @@ public class ItemPickupEventHandler {
 
     @SubscribeEvent
     public static void onItemPickup(EntityItemPickupEvent event) {
-        var player = event.getEntity();
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (!WeightCommands.isWeightEnabledFor(player)) return;
 
         double currentWeight = PlayerWeightHandler.getTotalWeight(player);
-        ItemStack stack = event.getItem().getItem();
+        ItemEntity itemEntity = event.getItem();
+        ItemStack stack = itemEntity.getItem();
 
-        ServerPlayer serverPlayer = (ServerPlayer) player;
-        if (!WeightCommands.isWeightEnabledFor(serverPlayer)) return;
-
-        double itemWeight = ItemWeightRegistry.getWeight(stack.getItem()) * stack.getCount();
+        double itemWeight = ItemWeightRegistry.getWeight(stack.getItem());
         double maxWeight = WeightConfig.COMMON.MAX_WEIGHT.get();
 
-        if (currentWeight + itemWeight > maxWeight) {
+        int maxPickupCount = (int) Math.floor((maxWeight - currentWeight) / itemWeight);
+
+        if (maxPickupCount <= 0) {
             event.setCanceled(true);
             player.displayClientMessage(
                     Component.translatable("message.ezweight.pickup_blocked",
@@ -38,6 +40,23 @@ public class ItemPickupEventHandler {
                     ),
                     true
             );
+            return;
+        }
+
+        int availableCount = stack.getCount();
+        if (maxPickupCount < availableCount) {
+            // Recoger solo parte del stack
+            ItemStack partialPickup = stack.copy();
+            partialPickup.setCount(maxPickupCount);
+
+            // Añadir al inventario
+            boolean success = player.getInventory().add(partialPickup);
+            if (success) {
+                stack.shrink(maxPickupCount);
+                itemEntity.setItem(stack);
+                event.setCanceled(true);
+                itemEntity.setPickUpDelay(10);
+            }
         }
     }
 }
