@@ -34,7 +34,6 @@ public class EZWeight {
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, WeightConfig.COMMON_SPEC, "ezweight/config.toml");
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, WeightConfig.CLIENT_SPEC, "ezweight/client_config.toml");
-        EZWeightNetwork.register();
 
 
 
@@ -49,6 +48,7 @@ public class EZWeight {
             Path configDir = FMLPaths.CONFIGDIR.get().resolve(MODID);
             ItemWeightRegistry.init(configDir);
             WeightLevelManager.init(configDir);
+            EZWeightNetwork.register();
         });
     }
 

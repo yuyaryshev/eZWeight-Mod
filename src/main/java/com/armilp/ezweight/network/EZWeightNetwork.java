@@ -37,8 +37,28 @@ public class EZWeightNetwork {
                 WeightUpdatePacket.class,
                 WeightUpdatePacket::encode,
                 WeightUpdatePacket::decode,
-                WeightUpdatePacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER)
+                WeightUpdatePacket::handle);
+
+        CHANNEL.registerMessage(
+                id++,
+                WeightSyncPacket.class,
+                WeightSyncPacket::encode,
+                WeightSyncPacket::decode,
+                WeightSyncPacket::handle
+        );
+
+        CHANNEL.registerMessage(id++,
+                WeightLevelsSyncPacket.class,
+                WeightLevelsSyncPacket::encode,
+                WeightLevelsSyncPacket::decode,
+                WeightLevelsSyncPacket::handle
+        );
+
+        CHANNEL.registerMessage(id++,
+                SyncALLWeightPacket.class,
+                SyncALLWeightPacket::encode,
+                SyncALLWeightPacket::decode,
+                SyncALLWeightPacket::handle
         );
     }
 

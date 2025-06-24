@@ -1,6 +1,7 @@
 package com.armilp.ezweight.client.gui.hud;
 
 import com.armilp.ezweight.config.WeightConfig;
+import com.armilp.ezweight.data.WeightSyncData;
 import com.armilp.ezweight.player.PlayerWeightHandler;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
@@ -41,7 +42,7 @@ public class WeightMiniHudOverlay {
 
         GuiGraphics graphics = event.getGuiGraphics();
         double weight = PlayerWeightHandler.getTotalWeight(mc.player);
-        double maxWeight = WeightConfig.COMMON.MAX_WEIGHT.get();
+        double maxWeight = WeightSyncData.getMaxWeight();
         double pct = Math.min(1.0, Math.max(0.0, weight / maxWeight));
 
         WeightCategory currentCategory = getCategoryForPercentage(pct);

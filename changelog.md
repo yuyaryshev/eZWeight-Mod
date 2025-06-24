@@ -1,4 +1,4 @@
-### 📦 Version 1.4.2
+### 📦 Version 1.5.2
 
-* 🛠 **Bug Fix:** Fixed an issue where the *Traveler's Backpack* item would drop when its internal weight exceeded the player's maximum weight limit.
-* ➕ **Improvement:** Players can now gradually pick up items from the ground even if they're at or over the weight limit, allowing for smoother inventory management.
+* 🛠 **Change:** The server now enforces the maximum carry weight, overriding the client’s local configuration.
+* 🔄 **Improvement:** Weight levels and item weights are now fully synced from server to client on join.

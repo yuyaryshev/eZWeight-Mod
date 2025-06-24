@@ -1,6 +1,7 @@
 package com.armilp.ezweight.client.gui.hud;
 
 import com.armilp.ezweight.config.WeightConfig;
+import com.armilp.ezweight.data.WeightSyncData;
 import com.armilp.ezweight.player.PlayerWeightHandler;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
@@ -18,9 +19,6 @@ import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import static com.armilp.ezweight.config.WeightConfig.Client.InventoryAnchor.LEFT;
-import static com.armilp.ezweight.config.WeightConfig.Client.InventoryAnchor.RIGHT;
-
 @Mod.EventBusSubscriber(modid = "ezweight", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class WeightHudOverlay {
 
@@ -29,6 +27,9 @@ public class WeightHudOverlay {
     private static final int PADDING = 6;
     private static final int BAR_HEIGHT = 6;
     private static final int MAX_BOX_WIDTH = 140;
+    private static int hudX, hudY, hudWidth, hudHeight;
+    private static int iconX, iconY;
+
 
     private static final float TITLE_SCALE = 1.0f;
     private static final float TEXT_SCALE = 0.85f;
@@ -55,22 +56,24 @@ public class WeightHudOverlay {
 
         updateAlpha(visible);
 
-        GuiGraphics graphics = event.getGuiGraphics();
-        int screenHeight = mc.getWindow().getGuiScaledHeight();
-        int iconX = 10;
-        int iconY = screenHeight - ICON_SIZE - 10;
+        if (WeightSyncData.consumeUpdatedFlag()) {
+            calculateHudPosition(mc);
+        }
 
-        renderIcon(graphics, iconX, iconY, visible);
+
+        GuiGraphics graphics = event.getGuiGraphics();
 
         double mouseX = mc.mouseHandler.xpos() / mc.getWindow().getGuiScale();
         double mouseY = mc.mouseHandler.ypos() / mc.getWindow().getGuiScale();
 
+        renderIcon(graphics, iconX, iconY, visible);
         handleHoverTooltip(mc, graphics, iconX, iconY, mouseX, mouseY, visible);
 
         if (visible || alpha > 0f) {
             renderWeightHud(mc, graphics);
         }
     }
+
 
     private static void updateAlpha(boolean visible) {
         if (visible) {
@@ -102,7 +105,7 @@ public class WeightHudOverlay {
 
     private static void renderWeightHud(Minecraft mc, GuiGraphics graphics) {
         double weight = PlayerWeightHandler.getTotalWeight(mc.player);
-        double maxWeight = WeightConfig.COMMON.MAX_WEIGHT.get();
+        double maxWeight = WeightSyncData.getMaxWeight();
         double pct = Math.max(0.0, Math.min(1.0, weight / maxWeight));
 
         String title = "ᴇᴢᴡᴇɪɢʜᴛ";
@@ -114,8 +117,60 @@ public class WeightHudOverlay {
         float scaledTitleWidth = titlePx * TITLE_SCALE;
         float scaledTextWidth = textPx * TEXT_SCALE;
 
-        int boxWidth = Math.min(MAX_BOX_WIDTH, (int) Math.max(scaledTitleWidth, scaledTextWidth) + PADDING * 2);
-        int boxHeight = (int) ((mc.font.lineHeight * TITLE_SCALE) + (mc.font.lineHeight * TEXT_SCALE) + BAR_HEIGHT + PADDING * 4);
+        int x = hudX;
+        int y = hudY;
+
+        int bgAlpha = ((int)(alpha * 255) << 24) | (BACKGROUND_COLOR & 0x00FFFFFF);
+        int borderAlpha = ((int)(alpha * 255) << 24) | (BORDER_COLOR & 0x00FFFFFF);
+        int textAlpha = ((int)(alpha * 255) << 24) | (TEXT_COLOR & 0x00FFFFFF);
+
+        graphics.fill(x, y, x + hudWidth, y + hudHeight, bgAlpha);
+        graphics.renderOutline(x, y, hudWidth, hudHeight, borderAlpha);
+
+        graphics.pose().pushPose();
+        graphics.pose().translate(x + (hudWidth - scaledTitleWidth) / 2f, y + PADDING, 0);
+        graphics.pose().scale(TITLE_SCALE, TITLE_SCALE, 1.0f);
+        graphics.drawString(mc.font, Component.literal(title), 0, 0, textAlpha, false);
+        graphics.pose().popPose();
+
+        float textY = y + PADDING + (mc.font.lineHeight * TITLE_SCALE) + PADDING;
+        graphics.pose().pushPose();
+        graphics.pose().translate(x + (hudWidth - scaledTextWidth) / 2f, textY, 0);
+        graphics.pose().scale(TEXT_SCALE, TEXT_SCALE, 1.0f);
+
+        int color = pct >= 0.8 ? 0xFFFF5555 : pct >= 0.5 ? 0xFFFFFF55 : 0xFF55FF55;
+        int colorWithAlpha = ((int)(alpha * 255) << 24) | (color & 0x00FFFFFF);
+
+        graphics.drawString(mc.font, Component.literal(weightText), 0, 0, colorWithAlpha, false);
+        graphics.pose().popPose();
+
+        int barX = x + PADDING;
+        int barY = (int)(textY + mc.font.lineHeight * TEXT_SCALE + PADDING);
+        int filled = (int) ((hudWidth - PADDING * 2) * pct);
+
+        graphics.fill(barX, barY, barX + (hudWidth - PADDING * 2), barY + BAR_HEIGHT, ((int)(alpha * 255) << 24) | 0x00333333);
+        if (filled > 0) {
+            graphics.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, colorWithAlpha);
+        }
+        graphics.renderOutline(barX, barY, hudWidth - PADDING * 2, BAR_HEIGHT, textAlpha);
+    }
+
+
+    private static void calculateHudPosition(Minecraft mc) {
+        double weight = PlayerWeightHandler.getTotalWeight(mc.player);
+        double maxWeight = WeightSyncData.getMaxWeight();
+
+        String title = "ᴇᴢᴡᴇɪɢʜᴛ";
+        String weightText = String.format("%.1f / %.1f KG", weight, maxWeight);
+
+        int titlePx = mc.font.width(title);
+        int textPx = mc.font.width(weightText);
+
+        float scaledTitleWidth = titlePx * TITLE_SCALE;
+        float scaledTextWidth = textPx * TEXT_SCALE;
+
+        hudWidth = Math.min(MAX_BOX_WIDTH, (int) Math.max(scaledTitleWidth, scaledTextWidth) + PADDING * 2);
+        hudHeight = (int) ((mc.font.lineHeight * TITLE_SCALE) + (mc.font.lineHeight * TEXT_SCALE) + BAR_HEIGHT + PADDING * 4);
 
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
@@ -127,68 +182,40 @@ public class WeightHudOverlay {
         int offsetX = WeightConfig.CLIENT.MAIN_HUD_OFFSET_X.get();
         int offsetY = WeightConfig.CLIENT.MAIN_HUD_OFFSET_Y.get();
 
-        int x, y;
         switch (anchor) {
             case TOP -> {
-                x = inventoryLeft + (176 - boxWidth) / 2 + offsetX;
-                y = inventoryTop - boxHeight + offsetY;
+                hudX = inventoryLeft + (176 - hudWidth) / 2 + offsetX;
+                hudY = inventoryTop - hudHeight + offsetY;
+                iconX = hudX + hudWidth + 5;
+                iconY = hudY;
             }
             case BOTTOM -> {
-                x = inventoryLeft + (176 - boxWidth) / 2 + offsetX;
-                y = inventoryTop + 166 + offsetY;
+                hudX = inventoryLeft + (176 - hudWidth) / 2 + offsetX;
+                hudY = inventoryTop + 166 + offsetY;
+                iconX = hudX + hudWidth + 5;
+                iconY = hudY;
             }
             case LEFT -> {
-                x = inventoryLeft - boxWidth + offsetX;
-                y = inventoryTop + (166 - boxHeight) / 2 + offsetY;
+                hudX = inventoryLeft - hudWidth + offsetX;
+                hudY = inventoryTop + (166 - hudHeight) / 2 + offsetY;
+                iconX = hudX - ICON_SIZE - 5;
+                iconY = hudY;
             }
             case RIGHT -> {
-                x = inventoryLeft + 176 + offsetX;
-                y = inventoryTop + (166 - boxHeight) / 2 + offsetY;
+                hudX = inventoryLeft + 176 + offsetX;
+                hudY = inventoryTop + (166 - hudHeight) / 2 + offsetY;
+                iconX = hudX + hudWidth + 5;
+                iconY = hudY;
             }
             default -> {
-                x = inventoryLeft - boxWidth + offsetX;
-                y = inventoryTop + (166 - boxHeight) / 2 + offsetY;
+                hudX = inventoryLeft - hudWidth + offsetX;
+                hudY = inventoryTop + (166 - hudHeight) / 2 + offsetY;
+                iconX = hudX - ICON_SIZE - 5;
+                iconY = hudY;
             }
         }
-
-
-        int bgAlpha = ((int)(alpha * 255) << 24) | (BACKGROUND_COLOR & 0x00FFFFFF);
-        int borderAlpha = ((int)(alpha * 255) << 24) | (BORDER_COLOR & 0x00FFFFFF);
-        int textAlpha = ((int)(alpha * 255) << 24) | (TEXT_COLOR & 0x00FFFFFF);
-
-        graphics.fill(x, y, x + boxWidth, y + boxHeight, bgAlpha);
-        graphics.renderOutline(x, y, boxWidth, boxHeight, borderAlpha);
-
-        // Title
-        graphics.pose().pushPose();
-        graphics.pose().translate(x + (boxWidth - scaledTitleWidth) / 2f, y + PADDING, 0);
-        graphics.pose().scale(TITLE_SCALE, TITLE_SCALE, 1.0f);
-        graphics.drawString(mc.font, Component.literal(title), 0, 0, textAlpha, false);
-        graphics.pose().popPose();
-
-        // Text
-        float textY = y + PADDING + (mc.font.lineHeight * TITLE_SCALE) + PADDING;
-        graphics.pose().pushPose();
-        graphics.pose().translate(x + (boxWidth - scaledTextWidth) / 2f, textY, 0);
-        graphics.pose().scale(TEXT_SCALE, TEXT_SCALE, 1.0f);
-
-        int color = pct >= 0.8 ? 0xFFFF5555 : pct >= 0.5 ? 0xFFFFFF55 : 0xFF55FF55;
-        int colorWithAlpha = ((int)(alpha * 255) << 24) | (color & 0x00FFFFFF);
-
-        graphics.drawString(mc.font, Component.literal(weightText), 0, 0, colorWithAlpha, false);
-        graphics.pose().popPose();
-
-        // Progress bar
-        int barX = x + PADDING;
-        int barY = (int)(textY + mc.font.lineHeight * TEXT_SCALE + PADDING);
-        int filled = (int) ((boxWidth - PADDING * 2) * pct);
-
-        graphics.fill(barX, barY, barX + (boxWidth - PADDING * 2), barY + BAR_HEIGHT, ((int)(alpha * 255) << 24) | 0x00333333);
-        if (filled > 0) {
-            graphics.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, colorWithAlpha);
-        }
-        graphics.renderOutline(barX, barY, boxWidth - PADDING * 2, BAR_HEIGHT, textAlpha);
     }
+
 
     @SubscribeEvent
     public static void onMouseClick(ScreenEvent.MouseButtonPressed event) {
@@ -198,8 +225,10 @@ public class WeightHudOverlay {
         double mouseX = event.getMouseX();
         double mouseY = event.getMouseY();
 
-        int iconX = 10;
-        int iconY = mc.getWindow().getGuiScaledHeight() - ICON_SIZE - 10;
+        if (WeightSyncData.consumeUpdatedFlag()) {
+            calculateHudPosition(mc);
+        }
+
 
         boolean clicked = mouseX >= iconX && mouseX <= iconX + ICON_SIZE && mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
 

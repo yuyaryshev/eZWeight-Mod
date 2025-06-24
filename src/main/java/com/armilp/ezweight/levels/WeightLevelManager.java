@@ -128,4 +128,64 @@ public class WeightLevelManager {
     public static List<WeightLevel> getLevels() {
         return Collections.unmodifiableList(LEVELS);
     }
+
+    public static void loadFromJsonString(String json) {
+        try {
+            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+            JsonArray jsonLevels = root.getAsJsonArray("levels");
+            LEVELS.clear();
+
+            for (JsonElement element : jsonLevels) {
+                JsonObject obj = element.getAsJsonObject();
+                String name = obj.get("name").getAsString();
+                double min = obj.get("min_weight").getAsDouble();
+                double max = obj.get("max_weight").getAsDouble();
+
+                List<MobEffectInstance> effects = new ArrayList<>();
+                JsonArray effs = obj.getAsJsonArray("effects");
+                for (JsonElement effElement : effs) {
+                    JsonObject effObj = effElement.getAsJsonObject();
+                    MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(new ResourceLocation(effObj.get("effect").getAsString()));
+                    int amplifier = effObj.get("amplifier").getAsInt();
+                    int duration = effObj.get("duration").getAsInt();
+                    effects.add(new MobEffectInstance(effect, duration, amplifier, true, true));
+                }
+
+                LEVELS.add(new WeightLevel(name, min, max, effects));
+            }
+
+            LEVELS.sort(Comparator.comparingDouble(WeightLevel::minWeight));
+        } catch (Exception e) {
+            EZWeight.LOGGER.error("Failed to parse synced weight levels", e);
+        }
+    }
+
+    public static String toJsonString(List<WeightLevel> levels) {
+        JsonObject root = new JsonObject();
+        JsonArray array = new JsonArray();
+
+        for (WeightLevel level : levels) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("name", level.name());
+            obj.addProperty("min_weight", level.minWeight());
+            obj.addProperty("max_weight", level.maxWeight());
+
+            JsonArray effs = new JsonArray();
+            for (MobEffectInstance eff : level.effects()) {
+                JsonObject effObj = new JsonObject();
+                effObj.addProperty("effect", BuiltInRegistries.MOB_EFFECT.getKey(eff.getEffect()).toString());
+                effObj.addProperty("amplifier", eff.getAmplifier());
+                effObj.addProperty("duration", eff.getDuration());
+                effs.add(effObj);
+            }
+
+            obj.add("effects", effs);
+            array.add(obj);
+        }
+
+        root.add("levels", array);
+        root.addProperty("version", 1);
+
+        return GSON.toJson(root);
+    }
 }

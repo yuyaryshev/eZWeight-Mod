@@ -147,6 +147,7 @@ modrinth {
 
     dependencies {
         optional.project 'sophisticated-backpacks'
+        optional.project 'travelersbackpack'
         optional.project 'curios'
     }
 }
@@ -167,7 +168,7 @@ publishing {
 tasks.register('publicModdedSite') {
     dependsOn 'build'
     dependsOn 'publishCurseForge'
-    // dependsOn 'modrinth'
+    dependsOn 'modrinth'
 }
 
 

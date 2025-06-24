@@ -203,4 +203,76 @@ public class ItemWeightRegistry {
     public static File getConfigFile() {
         return configFile;
     }
+
+    public static void updateMissingItems() {
+        if (configFile == null || !configFile.exists()) {
+            EZWeight.LOGGER.warn("Config file not found for updating items.");
+            return;
+        }
+
+        try (FileReader reader = new FileReader(configFile)) {
+            Type type = new TypeToken<Map<String, Map<String, Double>>>() {}.getType();
+            Map<String, Map<String, Double>> categorizedMap = GSON.fromJson(reader, type);
+
+            boolean updated = false;
+
+            for (Item item : ForgeRegistries.ITEMS.getValues()) {
+                ResourceLocation id = ForgeRegistries.ITEMS.getKey(item);
+                if (id != null && !ITEM_WEIGHTS.containsKey(id)) {
+                    double weight = estimateWeight(item);
+                    ITEM_WEIGHTS.put(id, weight);
+
+                    categorizedMap
+                            .computeIfAbsent(id.getNamespace(), k -> new LinkedHashMap<>())
+                            .put(id.toString(), weight);
+
+                    EZWeight.LOGGER.info("Added missing item '{}' with estimated weight {}", id, weight);
+                    updated = true;
+                }
+            }
+
+            if (updated) {
+                try (FileWriter writer = new FileWriter(configFile)) {
+                    GSON.toJson(categorizedMap, writer);
+                    EZWeight.LOGGER.info("Updated item weights file with new items.");
+                }
+            }
+
+        } catch (Exception e) {
+            EZWeight.LOGGER.error("Failed to update missing item weights!", e);
+        }
+    }
+
+
+    public static void reloadFromFile() {
+        if (configFile != null && configFile.exists()) {
+            try {
+                Type type = new TypeToken<Map<String, Map<String, Double>>>() {}.getType();
+                Map<String, Map<String, Double>> categorizedMap = GSON.fromJson(new FileReader(configFile), type);
+
+                ITEM_WEIGHTS.clear(); // Limpia el mapa actual para recargar todo
+
+                for (Map.Entry<String, Map<String, Double>> categoryEntry : categorizedMap.entrySet()) {
+                    for (Map.Entry<String, Double> entry : categoryEntry.getValue().entrySet()) {
+                        try {
+                            ResourceLocation id = new ResourceLocation(entry.getKey());
+                            double weight = entry.getValue();
+                            ITEM_WEIGHTS.put(id, weight);
+                        } catch (Exception e) {
+                            EZWeight.LOGGER.warn("Invalid entry in item weights config: {}", entry.getKey(), e);
+                        }
+                    }
+                }
+
+                updateMissingItems(); // Agrega ítems nuevos si faltan
+                EZWeight.LOGGER.info("Reloaded {} item weights from config.", ITEM_WEIGHTS.size());
+
+            } catch (Exception e) {
+                EZWeight.LOGGER.error("Failed to reload item weights from file.", e);
+            }
+        } else {
+            EZWeight.LOGGER.warn("No config file found to reload item weights.");
+        }
+    }
+
 }
