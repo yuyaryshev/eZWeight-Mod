@@ -4,6 +4,7 @@ import com.armilp.ezweight.EZWeight;
 import com.armilp.ezweight.commands.WeightCommands;
 import com.armilp.ezweight.config.WeightConfig;
 import com.armilp.ezweight.data.ItemWeightRegistry;
+import com.armilp.ezweight.player.DynamicMaxWeightCalculator;
 import com.armilp.ezweight.player.PlayerWeightHandler;
 
 import com.tiviacz.travelersbackpack.TravelersBackpack;
@@ -33,7 +34,7 @@ public class ContainerEventHandler {
         if (!WeightCommands.isWeightEnabledFor(player)) return;
 
         double totalWeight = PlayerWeightHandler.getTotalWeight(player);
-        double maxWeight = WeightConfig.COMMON.MAX_WEIGHT.get();
+        double maxWeight = DynamicMaxWeightCalculator.calculate(player);  // Peso máximo dinámico
 
         if (totalWeight > maxWeight) {
             player.displayClientMessage(
@@ -89,7 +90,8 @@ public class ContainerEventHandler {
     private static double dropSingleItemFromStack(ServerPlayer player, ItemStack stack, double currentWeight) {
         double itemWeight = ItemWeightRegistry.getWeight(stack.getItem());
 
-        while (currentWeight > WeightConfig.COMMON.MAX_WEIGHT.get() && stack.getCount() > 0) {
+        // Aquí se usa el peso dinámico en vez del estático
+        while (currentWeight > DynamicMaxWeightCalculator.calculate(player) && stack.getCount() > 0) {
             ItemStack drop = stack.copy();
             drop.setCount(1);
             stack.shrink(1);
