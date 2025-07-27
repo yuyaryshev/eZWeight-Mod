@@ -70,16 +70,23 @@ public class WeightLevelManager {
         JsonObject root = new JsonObject();
         JsonArray levels = new JsonArray();
 
+        double base = WeightConfig.COMMON.BASE_WEIGHT.get();
         double max = WeightConfig.COMMON.MAX_WEIGHT.get();
-        double step = max / 6.0;
 
-        levels.add(createLevel("Unburdened", 0.0, step - 0.01));
-        levels.add(createLevel("Light Load", step, step * 2 - 0.01));
-        levels.add(createLevel("Moderate Load", step * 2, step * 3 - 0.01, effect("minecraft:slowness", 0)));
-        levels.add(createLevel("Heavy Load", step * 3, step * 4 - 0.01, effect("minecraft:slowness", 1), effect("minecraft:mining_fatigue", 0)));
-        levels.add(createLevel("Very Heavy Load", step * 4, step * 5 - 0.01, effect("minecraft:slowness", 2), effect("minecraft:mining_fatigue", 1)));
-        levels.add(createLevel("Overburdened", step * 5, max - 0.01, effect("minecraft:slowness", 3), effect("minecraft:weakness", 0)));
-        levels.add(createLevel("Crushed", max, max, effect("minecraft:slowness", 4), effect("minecraft:weakness", 1)));
+        double range = max - base;
+        double step = range / 6.0;
+
+        levels.add(createLevel("Unburdened", base, base + step - 0.01));
+        levels.add(createLevel("Light Load", base + step, base + step * 2 - 0.01));
+        levels.add(createLevel("Moderate Load", base + step * 2, base + step * 3 - 0.01, effect("minecraft:slowness", 0)));
+        levels.add(createLevel("Heavy Load", base + step * 3, base + step * 4 - 0.01,
+                effect("minecraft:slowness", 1), effect("minecraft:mining_fatigue", 0)));
+        levels.add(createLevel("Very Heavy Load", base + step * 4, base + step * 5 - 0.01,
+                effect("minecraft:slowness", 2), effect("minecraft:mining_fatigue", 1)));
+        levels.add(createLevel("Overburdened", base + step * 5, max - 0.01,
+                effect("minecraft:slowness", 3), effect("minecraft:weakness", 0)));
+        levels.add(createLevel("Crushed", max, max,
+                effect("minecraft:slowness", 4), effect("minecraft:weakness", 1)));
 
         root.add("levels", levels);
         root.addProperty("version", 1);
@@ -88,12 +95,13 @@ public class WeightLevelManager {
             file.getParentFile().mkdirs();
             try (FileWriter writer = new FileWriter(file)) {
                 GSON.toJson(root, writer);
-                EZWeight.LOGGER.info("Generated balanced weight levels based on max_weight = {}", max);
+                EZWeight.LOGGER.info("Generated balanced weight levels based on base_weight = {} and max_weight = {}", base, max);
             }
         } catch (IOException e) {
             EZWeight.LOGGER.error("Failed to write default levels config!", e);
         }
     }
+
 
 
 

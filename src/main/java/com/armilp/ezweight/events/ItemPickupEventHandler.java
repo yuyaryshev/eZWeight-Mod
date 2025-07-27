@@ -27,7 +27,7 @@ public class ItemPickupEventHandler {
 
         ItemEntity itemEntity = event.getItem();
         ItemStack stack = itemEntity.getItem();
-        double itemWeight = ItemWeightRegistry.getWeight(stack.getItem());
+        double itemWeight = ItemWeightRegistry.getWeight(stack);
 
         int maxPickupCount = (int) Math.floor((maxWeight - currentWeight) / itemWeight);
         if (maxPickupCount <= 0) {

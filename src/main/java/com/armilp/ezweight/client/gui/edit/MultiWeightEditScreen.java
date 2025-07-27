@@ -1,6 +1,6 @@
-package com.armilp.ezweight.client.gui;
+package com.armilp.ezweight.client.gui.edit;
 
-import com.armilp.ezweight.data.ItemWeightRegistry;
+import com.armilp.ezweight.client.gui.WeightListWidget;
 import com.armilp.ezweight.network.EZWeightNetwork;
 import com.armilp.ezweight.network.sync.WeightUpdatePacket;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,38 +9,39 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 
-public class WeightEditScreen extends Screen {
+import java.util.List;
 
+public class MultiWeightEditScreen extends Screen {
     private final Screen parent;
-    private final ItemStack stack;
-    private final ResourceLocation id;
+    private final List<WeightListWidget.ItemEntry> items;
     private EditBox weightBox;
 
-    public WeightEditScreen(Screen parent, ItemStack stack, ResourceLocation id) {
-        super(Component.translatable("screen.ezweight.edit_weight"));
+    public MultiWeightEditScreen(Screen parent, List<WeightListWidget.ItemEntry> items) {
+        super(Component.translatable("screen.ezweight.edit_multiple"));
         this.parent = parent;
-        this.stack = stack;
-        this.id = id;
+        this.items = items;
     }
 
     @Override
     protected void init() {
-        double currentWeight = ItemWeightRegistry.getWeight(stack.getItem());
-
         weightBox = new EditBox(this.font, this.width / 2 - 50, this.height / 2 - 10, 100, 20,
                 Component.translatable("gui.ezweight.weight_placeholder"));
-        weightBox.setValue(String.valueOf(currentWeight));
         this.addRenderableWidget(weightBox);
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.ezweight.save"), b -> {
             try {
                 double newWeight = Double.parseDouble(weightBox.getValue());
-                EZWeightNetwork.CHANNEL.sendToServer(new WeightUpdatePacket(id, newWeight));
+                for (WeightListWidget.ItemEntry entry : items) {
+                    ResourceLocation id = ForgeRegistries.ITEMS.getKey(entry.stack.getItem());
+                    if (id != null) {
+                        EZWeightNetwork.CHANNEL.sendToServer(new WeightUpdatePacket(id, newWeight));
+                    }
+                }
                 this.minecraft.setScreen(parent);
             } catch (NumberFormatException e) {
-                weightBox.setTextColor(0xFF5555); // rojo si hay error
+                weightBox.setTextColor(0xFF5555); // rojo si error
             }
         }).bounds(this.width / 2 - 50, this.height / 2 + 20, 100, 20).build());
 
@@ -52,14 +53,14 @@ public class WeightEditScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
-        graphics.drawCenteredString(this.font, stack.getHoverName().getString(), this.width / 2, this.height / 2 - 30, 0xFFFFFF);
+        graphics.drawCenteredString(this.font, Component.translatable("screen.ezweight.edit_multiple"), this.width / 2, this.height / 2 - 30, 0xFFFFFF);
         super.render(graphics, mouseX, mouseY, partialTick);
         weightBox.render(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256) { // ESC
+        if (keyCode == 256) {
             this.minecraft.setScreen(parent);
             return true;
         }

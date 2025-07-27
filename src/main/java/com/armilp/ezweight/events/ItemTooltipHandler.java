@@ -18,7 +18,7 @@ public class ItemTooltipHandler {
         ItemStack stack = event.getItemStack();
         if (!stack.isEmpty()) {
 
-            double baseWeight = ItemWeightRegistry.getWeight(stack.getItem());
+            double baseWeight = ItemWeightRegistry.getWeight(stack);
             double totalWeight = PlayerWeightHandler.getExtendedStackWeightWithContents(stack, event.getEntity());
 
             if (totalWeight > 0.0) {

@@ -1,18 +1,29 @@
 package com.armilp.ezweight.data;
 
+import com.armilp.ezweight.player.DynamicMaxWeightCalculator;
+import net.minecraft.world.entity.player.Player;
+
 public class WeightSyncData {
-    private static double maxWeight = 60.0; // valor inicial por defecto
+    private static double lastSyncedMaxWeight = 60.0;
     private static boolean updated = false;
 
+    public static void updateDynamicMaxWeight(Player player) {
+        double newMax = DynamicMaxWeightCalculator.calculate(player);
+        if (Double.compare(lastSyncedMaxWeight, newMax) != 0) {
+            lastSyncedMaxWeight = newMax;
+            updated = true;
+        }
+    }
+
     public static void setMaxWeight(double newMax) {
-        if (Double.compare(maxWeight, newMax) != 0) {
-            maxWeight = newMax;
-            updated = true;  // marca que hubo actualización
+        if (Double.compare(lastSyncedMaxWeight, newMax) != 0) {
+            lastSyncedMaxWeight = newMax;
+            updated = true;
         }
     }
 
     public static double getMaxWeight() {
-        return maxWeight;
+        return lastSyncedMaxWeight;
     }
 
     public static boolean consumeUpdatedFlag() {
@@ -21,5 +32,3 @@ public class WeightSyncData {
         return flag;
     }
 }
-
-

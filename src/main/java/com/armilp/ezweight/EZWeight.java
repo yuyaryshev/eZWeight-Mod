@@ -18,7 +18,6 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
-import net.minecraftforge.fml.DistExecutor;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -63,7 +62,6 @@ public class EZWeight {
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
-            // Aquí puedes poner registro de renderizadores o teclas personalizadas
         }
     }
 }

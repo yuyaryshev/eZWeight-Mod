@@ -87,7 +87,7 @@ public class PlayerWeightHandler {
 
 
     private static double getStackWeightWithContents(ItemStack stack) {
-        double per = ItemWeightRegistry.getWeight(stack.getItem());
+        double per = ItemWeightRegistry.getWeight(stack);
         double tot = per * stack.getCount();
         double capWeight = stack.getCapability(ForgeCapabilities.ITEM_HANDLER)
                 .map(PlayerWeightHandler::getHandlerContentsWeight)

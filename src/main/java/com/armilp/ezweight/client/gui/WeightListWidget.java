@@ -1,7 +1,6 @@
 package com.armilp.ezweight.client.gui;
 
-import com.armilp.ezweight.network.EZWeightNetwork;
-import com.armilp.ezweight.network.WeightUpdatePacket;
+import com.armilp.ezweight.client.gui.edit.WeightEditScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ObjectSelectionList;

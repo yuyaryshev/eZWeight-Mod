@@ -1,5 +1,6 @@
 package com.armilp.ezweight.client.gui;
 
+import com.armilp.ezweight.client.gui.edit.MultiWeightEditScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -28,14 +29,16 @@ public class WeightMenuScreen extends Screen {
 
     @Override
     protected void init() {
+        super.init();
+
         // Lista de ítems
         this.list = new WeightListWidget(this, this.minecraft, this.width, this.height, 80, this.height - 32, 24);
         this.addWidget(this.list);
 
         // Botón de volver
-        Button backButton = Button.builder(Component.translatable("button.ezweight.back"), b -> {
-            Minecraft.getInstance().setScreen(new WeightNamespaceScreen());
-        }).bounds(10, 30, 60, 20).build();
+        Button backButton = Button.builder(Component.translatable("button.ezweight.back"), b ->
+                Minecraft.getInstance().setScreen(new WeightNamespaceScreen())
+        ).bounds(10, 30, 60, 20).build();
         this.addRenderableWidget(backButton);
 
         // Campo de búsqueda
@@ -45,20 +48,20 @@ public class WeightMenuScreen extends Screen {
         this.addRenderableWidget(searchBox);
 
         // Botón para limpiar búsqueda
-        clearSearchButton = Button.builder(Component.literal("✕"), b -> {
-            searchBox.setValue("");
-        }).bounds(215, 55, 20, 16).build();
+        clearSearchButton = Button.builder(Component.literal("✕"), b -> searchBox.setValue(""))
+                .bounds(215, 55, 20, 16).build();
         this.addRenderableWidget(clearSearchButton);
 
-        updateList();
         // Botón "Editar seleccionados"
-        this.addRenderableWidget(Button.builder(Component.translatable("button.ezweight.edit_selected"), b -> {
+        Button editButton = Button.builder(Component.translatable("button.ezweight.edit_selected"), b -> {
             List<WeightListWidget.ItemEntry> selected = new ArrayList<>(list.getSelectedEntries());
             if (!selected.isEmpty()) {
                 Minecraft.getInstance().setScreen(new MultiWeightEditScreen(this, selected));
             }
-        }).bounds(this.width - 140, 30, 120, 20).build());
+        }).bounds(this.width - 140, 30, 120, 20).build();
+        this.addRenderableWidget(editButton);
 
+        updateList();
     }
 
     private void onSearchChanged(String query) {
@@ -70,11 +73,11 @@ public class WeightMenuScreen extends Screen {
         list.clear();
         list.addCategory(namespace);
 
-        // Copia para ordenar alfabéticamente por nombre visible
+        // Filtrar y ordenar
         List<ItemStackWithWeight> filtered = new ArrayList<>();
         for (ItemStackWithWeight sw : items) {
             String name = sw.stack().getHoverName().getString().toLowerCase();
-            if (searchQuery.isEmpty() || name.contains(searchQuery) || namespace.equals("all")) {
+            if (searchQuery.isEmpty() || name.contains(searchQuery)) {
                 filtered.add(sw);
             }
         }
@@ -90,23 +93,26 @@ public class WeightMenuScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
         this.list.render(graphics, mouseX, mouseY, partialTick);
-
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
-
         super.render(graphics, mouseX, mouseY, partialTick);
-
         searchBox.render(graphics, mouseX, mouseY, partialTick);
 
-        // Placeholder visual en el campo de búsqueda (después del render)
+        // Placeholder visual
         if (searchBox.getValue().isEmpty() && !searchBox.isFocused()) {
-            graphics.drawString(this.font, "Search...", searchBox.getX() + 4, searchBox.getY() + 3, 0x888888, false);
+            graphics.drawString(
+                    this.font,
+                    searchBox.getMessage().getString(),
+                    searchBox.getX() + 4,
+                    searchBox.getY() + 3,
+                    0x888888,
+                    false
+            );
         }
     }
 
-
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        // Permitir scroll con la rueda dentro del campo de búsqueda
+        // Scroll en lista, no en el campo
         if (searchBox.isMouseOver(mouseX, mouseY)) {
             return false;
         }
@@ -116,10 +122,17 @@ public class WeightMenuScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         // Cierra con ESC
-        if (this.minecraft != null && keyCode == 256) {
+        if (keyCode == 256) {
             this.minecraft.setScreen(null);
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        // Necesario para que EditBox procese teclas cada tick
+        searchBox.tick();
     }
 }

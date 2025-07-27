@@ -31,7 +31,6 @@ public class WeightNamespaceScreen extends Screen {
     protected void init() {
         this.categorizedStacks.clear();
 
-        // Carga de todos los ítems categorizados según el Namespace
         for (Map.Entry<ResourceLocation, Double> entry : ItemWeightRegistry.getAllWeights().entrySet()) {
             ResourceLocation id = entry.getKey();
             double weight = entry.getValue();
@@ -40,19 +39,18 @@ public class WeightNamespaceScreen extends Screen {
             if (item == null) continue;
 
             ItemStack stack = new ItemStack(item);
-            String namespace = id.getNamespace();
+            String namespace = id.getNamespace();  // Aquí obtienes el namespace
+            String path = id.getPath();  // Aquí obtienes el path del ítem
 
             this.categorizedStacks
-                    .computeIfAbsent(namespace, k -> new ArrayList<>())
+                    .computeIfAbsent(namespace, k -> new ArrayList<>()) // Utilizas el namespace como clave
                     .add(new ItemStackWithWeight(stack, weight));
 
         }
 
-        // List con scroll
         this.list = new WeightNamespaceList(this.minecraft, this.width, this.height - 50, 50, this.height);
         this.addRenderableWidget(this.list);
 
-        // Agregar All primero
         List<ItemStackWithWeight> all = new ArrayList<>();
         categorizedStacks.values().forEach(all::addAll);
         this.list.addNamespaceEntry("all", all);
@@ -80,7 +78,6 @@ public class WeightNamespaceScreen extends Screen {
             this.mc = mc;
         }
 
-        // Método para añadir entradas
         public void addNamespaceEntry(String Namespace, List<ItemStackWithWeight> ItemList) {
             this.addEntry(new Entry(this, Namespace, ItemList));
         }
@@ -115,7 +112,6 @@ public class WeightNamespaceScreen extends Screen {
                 this.button.setX(left + width / 2 - 100);
                 this.button.render(gui, mouseX, mouseY, partialTick);
 
-                // Agregar un tooltip si el mouse se pone encima del botón
                 if (hovered) {
                     List<Component> tooltip = new ArrayList<>();
                     tooltip.add(Component.translatable("tooltip.ezweight.view_category"));

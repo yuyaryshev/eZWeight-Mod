@@ -30,7 +30,6 @@ public class WeightHudOverlay {
     private static int hudX, hudY, hudWidth, hudHeight;
     private static int iconX, iconY;
 
-
     private static final float TITLE_SCALE = 1.0f;
     private static final float TEXT_SCALE = 0.85f;
 
@@ -55,14 +54,9 @@ public class WeightHudOverlay {
         }
 
         updateAlpha(visible);
-
-        if (WeightSyncData.consumeUpdatedFlag()) {
-            calculateHudPosition(mc);
-        }
-
+        calculateHudPosition(mc);  // always recalc
 
         GuiGraphics graphics = event.getGuiGraphics();
-
         double mouseX = mc.mouseHandler.xpos() / mc.getWindow().getGuiScale();
         double mouseY = mc.mouseHandler.ypos() / mc.getWindow().getGuiScale();
 
@@ -74,13 +68,9 @@ public class WeightHudOverlay {
         }
     }
 
-
     private static void updateAlpha(boolean visible) {
-        if (visible) {
-            alpha = Math.min(1f, alpha + FADE_SPEED);
-        } else {
-            alpha = Math.max(0f, alpha - FADE_SPEED);
-        }
+        if (visible) alpha = Math.min(1f, alpha + FADE_SPEED);
+        else alpha = Math.max(0f, alpha - FADE_SPEED);
     }
 
     private static void renderIcon(GuiGraphics graphics, int x, int y, boolean visible) {
@@ -95,7 +85,6 @@ public class WeightHudOverlay {
 
     private static void handleHoverTooltip(Minecraft mc, GuiGraphics graphics, int iconX, int iconY, double mouseX, double mouseY, boolean visible) {
         boolean hovered = mouseX >= iconX && mouseX <= iconX + ICON_SIZE && mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
-
         if (hovered) {
             graphics.renderOutline(iconX - 1, iconY - 1, ICON_SIZE + 2, ICON_SIZE + 2, 0xFFFFFFFF);
             Component tooltipText = Component.translatable(visible ? "tooltip.ezweight.hide_weight" : "tooltip.ezweight.show_weight");
@@ -113,13 +102,11 @@ public class WeightHudOverlay {
 
         int titlePx = mc.font.width(title);
         int textPx = mc.font.width(weightText);
-
         float scaledTitleWidth = titlePx * TITLE_SCALE;
         float scaledTextWidth = textPx * TEXT_SCALE;
 
         int x = hudX;
         int y = hudY;
-
         int bgAlpha = ((int)(alpha * 255) << 24) | (BACKGROUND_COLOR & 0x00FFFFFF);
         int borderAlpha = ((int)(alpha * 255) << 24) | (BORDER_COLOR & 0x00FFFFFF);
         int textAlpha = ((int)(alpha * 255) << 24) | (TEXT_COLOR & 0x00FFFFFF);
@@ -137,17 +124,14 @@ public class WeightHudOverlay {
         graphics.pose().pushPose();
         graphics.pose().translate(x + (hudWidth - scaledTextWidth) / 2f, textY, 0);
         graphics.pose().scale(TEXT_SCALE, TEXT_SCALE, 1.0f);
-
         int color = pct >= 0.8 ? 0xFFFF5555 : pct >= 0.5 ? 0xFFFFFF55 : 0xFF55FF55;
         int colorWithAlpha = ((int)(alpha * 255) << 24) | (color & 0x00FFFFFF);
-
         graphics.drawString(mc.font, Component.literal(weightText), 0, 0, colorWithAlpha, false);
         graphics.pose().popPose();
 
         int barX = x + PADDING;
         int barY = (int)(textY + mc.font.lineHeight * TEXT_SCALE + PADDING);
-        int filled = (int) ((hudWidth - PADDING * 2) * pct);
-
+        int filled = (int)((hudWidth - PADDING * 2) * pct);
         graphics.fill(barX, barY, barX + (hudWidth - PADDING * 2), barY + BAR_HEIGHT, ((int)(alpha * 255) << 24) | 0x00333333);
         if (filled > 0) {
             graphics.fill(barX, barY, barX + filled, barY + BAR_HEIGHT, colorWithAlpha);
@@ -155,28 +139,24 @@ public class WeightHudOverlay {
         graphics.renderOutline(barX, barY, hudWidth - PADDING * 2, BAR_HEIGHT, textAlpha);
     }
 
-
     private static void calculateHudPosition(Minecraft mc) {
-        double weight = PlayerWeightHandler.getTotalWeight(mc.player);
-        double maxWeight = WeightSyncData.getMaxWeight();
+        if (!(mc.screen instanceof InventoryScreen screen)) return;
 
         String title = "ᴇᴢᴡᴇɪɢʜᴛ";
-        String weightText = String.format("%.1f / %.1f KG", weight, maxWeight);
+        String weightText = String.format("%.1f / %.1f KG", PlayerWeightHandler.getTotalWeight(mc.player), WeightSyncData.getMaxWeight());
 
         int titlePx = mc.font.width(title);
         int textPx = mc.font.width(weightText);
-
         float scaledTitleWidth = titlePx * TITLE_SCALE;
         float scaledTextWidth = textPx * TEXT_SCALE;
 
-        hudWidth = Math.min(MAX_BOX_WIDTH, (int) Math.max(scaledTitleWidth, scaledTextWidth) + PADDING * 2);
-        hudHeight = (int) ((mc.font.lineHeight * TITLE_SCALE) + (mc.font.lineHeight * TEXT_SCALE) + BAR_HEIGHT + PADDING * 4);
+        hudWidth = Math.min(MAX_BOX_WIDTH, (int)Math.max(scaledTitleWidth, scaledTextWidth) + PADDING * 2);
+        hudHeight = (int)((mc.font.lineHeight * TITLE_SCALE) + (mc.font.lineHeight * TEXT_SCALE) + BAR_HEIGHT + PADDING * 4);
 
-        int screenWidth = mc.getWindow().getGuiScaledWidth();
-        int screenHeight = mc.getWindow().getGuiScaledHeight();
-
-        int inventoryLeft = (screenWidth - 176) / 2;
-        int inventoryTop = (screenHeight - 166) / 2;
+        int inventoryLeft = screen.getGuiLeft();
+        int inventoryTop = screen.getGuiTop();
+        int inventoryWidth = screen.getXSize();
+        int inventoryHeight = screen.getYSize();
 
         WeightConfig.Client.InventoryAnchor anchor = WeightConfig.CLIENT.MAIN_HUD_ANCHOR.get();
         int offsetX = WeightConfig.CLIENT.MAIN_HUD_OFFSET_X.get();
@@ -184,38 +164,37 @@ public class WeightHudOverlay {
 
         switch (anchor) {
             case TOP -> {
-                hudX = inventoryLeft + (176 - hudWidth) / 2 + offsetX;
+                hudX = inventoryLeft + (inventoryWidth - hudWidth) / 2 + offsetX;
                 hudY = inventoryTop - hudHeight + offsetY;
                 iconX = hudX + hudWidth + 5;
                 iconY = hudY;
             }
             case BOTTOM -> {
-                hudX = inventoryLeft + (176 - hudWidth) / 2 + offsetX;
-                hudY = inventoryTop + 166 + offsetY;
+                hudX = inventoryLeft + (inventoryWidth - hudWidth) / 2 + offsetX;
+                hudY = inventoryTop + inventoryHeight + offsetY;
                 iconX = hudX + hudWidth + 5;
                 iconY = hudY;
             }
             case LEFT -> {
                 hudX = inventoryLeft - hudWidth + offsetX;
-                hudY = inventoryTop + (166 - hudHeight) / 2 + offsetY;
+                hudY = inventoryTop + (inventoryHeight - hudHeight) / 2 + offsetY;
                 iconX = hudX - ICON_SIZE - 5;
                 iconY = hudY;
             }
             case RIGHT -> {
-                hudX = inventoryLeft + 176 + offsetX;
-                hudY = inventoryTop + (166 - hudHeight) / 2 + offsetY;
+                hudX = inventoryLeft + inventoryWidth + offsetX;
+                hudY = inventoryTop + (inventoryHeight - hudHeight) / 2 + offsetY;
                 iconX = hudX + hudWidth + 5;
                 iconY = hudY;
             }
             default -> {
                 hudX = inventoryLeft - hudWidth + offsetX;
-                hudY = inventoryTop + (166 - hudHeight) / 2 + offsetY;
+                hudY = inventoryTop + (inventoryHeight - hudHeight) / 2 + offsetY;
                 iconX = hudX - ICON_SIZE - 5;
                 iconY = hudY;
             }
         }
     }
-
 
     @SubscribeEvent
     public static void onMouseClick(ScreenEvent.MouseButtonPressed event) {
@@ -225,22 +204,14 @@ public class WeightHudOverlay {
         double mouseX = event.getMouseX();
         double mouseY = event.getMouseY();
 
-        if (WeightSyncData.consumeUpdatedFlag()) {
-            calculateHudPosition(mc);
-        }
-
-
+        calculateHudPosition(mc);
         boolean clicked = mouseX >= iconX && mouseX <= iconX + ICON_SIZE && mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
 
         if (clicked) {
             CompoundTag data = mc.player.getPersistentData();
             boolean current = data.getBoolean(NBT_KEY_HUD_VISIBLE);
             data.putBoolean(NBT_KEY_HUD_VISIBLE, !current);
-
-            if (mc.level != null) {
-                mc.level.playSound(mc.player, mc.player.blockPosition(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.MASTER, 0.4f, 1.0f);
-            }
-
+            mc.level.playSound(mc.player, mc.player.blockPosition(), SoundEvents.UI_BUTTON_CLICK.get(), SoundSource.MASTER, 0.4f, 1.0f);
             event.setCanceled(true);
         }
     }

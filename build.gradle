@@ -7,6 +7,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
     id "com.modrinth.minotaur" version "2.+"
     id 'net.darkhax.curseforgegradle' version '1.1.+'
+    id 'org.spongepowered.mixin' version '0.7.+'
 }
 
 def changelogText = rootProject.file('changelog.md').text
@@ -82,6 +83,7 @@ repositories {
 dependencies {
 
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation fg.deobf("curse.maven:timeless-and-classics-zero-1028108:6654541")
     implementation fg.deobf("curse.maven:sophisticated-backpacks-422301:6587116")
     implementation fg.deobf("curse.maven:sophisticated-core-618298:6596375")
     implementation fg.deobf("curse.maven:travelers-backpack-321117:6650344")

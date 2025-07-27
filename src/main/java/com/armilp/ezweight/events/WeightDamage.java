@@ -2,6 +2,7 @@ package com.armilp.ezweight.events;
 
 import com.armilp.ezweight.commands.WeightCommands;
 import com.armilp.ezweight.config.WeightConfig;
+import com.armilp.ezweight.player.DynamicMaxWeightCalculator;
 import com.armilp.ezweight.player.PlayerWeightHandler;
 import com.armilp.ezweight.registry.WeightDamageSources;
 import net.minecraft.ChatFormatting;
@@ -20,34 +21,39 @@ import java.util.List;
 public class WeightDamage {
 
     private static final String TICK_COUNTER_TAG = "ezweight_damage_tick_counter";
+    private static final int TICKS_PER_DAMAGE = 20;
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
 
         Player player = event.player;
-        double weight = PlayerWeightHandler.getTotalWeight(player);
-
-        ServerPlayer serverPlayer = (ServerPlayer) player;
+        if (!(player instanceof ServerPlayer serverPlayer)) return;
         if (!WeightCommands.isWeightEnabledFor(serverPlayer)) return;
 
-        if (!shouldApplyDamage(weight)) {
+        double currentWeight = PlayerWeightHandler.getTotalWeight(player);
+        double maxWeight = DynamicMaxWeightCalculator.calculate(player);
+
+        if (!WeightConfig.COMMON.DAMAGE_OVERWEIGHT_ENABLED.get() || maxWeight <= 0.0) {
+            resetTickCounter(player);
+            return;
+        }
+
+        double overweightRatio = currentWeight / maxWeight;
+        if (!isOverThreshold(overweightRatio)) {
             resetTickCounter(player);
             return;
         }
 
         CompoundTag data = player.getPersistentData();
-        int tickCounter = data.getInt(TICK_COUNTER_TAG);
-        tickCounter++;
+        int ticksOverweight = data.getInt(TICK_COUNTER_TAG) + 1;
 
-        if (tickCounter >= 20) {
-            tickCounter = 0;
-            float damage = calculateDamage(weight);
+        if (ticksOverweight >= TICKS_PER_DAMAGE) {
+            ticksOverweight = 0;
+            float damage = calculateDamage(currentWeight, maxWeight);
             if (damage > 0.0f) {
-                DamageSource damageSource = WeightDamageSources.overweight(player.level().registryAccess());
-                player.hurt(damageSource, damage);
-
-                // Mostrar mensaje de advertencia de daño por sobrepeso
+                DamageSource source = WeightDamageSources.overweight(player.level().registryAccess());
+                player.hurt(source, damage);
                 serverPlayer.displayClientMessage(
                         Component.translatable("message.ezweight.overweight_damage").withStyle(ChatFormatting.DARK_RED),
                         true
@@ -55,39 +61,42 @@ public class WeightDamage {
             }
         }
 
-        data.putInt(TICK_COUNTER_TAG, tickCounter);
+        data.putInt(TICK_COUNTER_TAG, ticksOverweight);
     }
 
     private static void resetTickCounter(Player player) {
         player.getPersistentData().putInt(TICK_COUNTER_TAG, 0);
     }
 
-    private static boolean shouldApplyDamage(double weight) {
-        if (!WeightConfig.COMMON.DAMAGE_OVERWEIGHT_ENABLED.get()) return false;
-
-        List<? extends String> ranges = WeightConfig.COMMON.DAMAGE_OVERWEIGHT_RANGES.get();
-        for (int i = 0; i < ranges.size() - 1; i += 2) {
-            double min = WeightConfig.parseWeightValue(ranges.get(i));
-            double max = WeightConfig.parseWeightValue(ranges.get(i + 1));
-            if (weight >= min && weight <= max) {
-                return true;
-            }
+    private static boolean isOverThreshold(double overweightRatio) {
+        List<? extends String> thresholds = WeightConfig.COMMON.DAMAGE_OVERWEIGHT_THRESHOLDS.get();
+        for (String str : thresholds) {
+            try {
+                double threshold = Double.parseDouble(str);
+                if (overweightRatio >= threshold) return true;
+            } catch (NumberFormatException ignored) {}
         }
         return false;
     }
 
-    private static float calculateDamage(double weight) {
+    private static float calculateDamage(double currentWeight, double maxWeight) {
         if (!WeightConfig.COMMON.PROGRESSIVE_DAMAGE_ENABLED.get()) {
             return WeightConfig.COMMON.DAMAGE_PER_SECOND.get().floatValue();
         }
 
-        double startWeight = WeightConfig.getProgressiveStartWeight();
-        if (weight <= startWeight) return 0.0f;
-
-        double step = WeightConfig.COMMON.PROGRESSIVE_WEIGHT_STEP.get();
+        double stepSize = WeightConfig.COMMON.PROGRESSIVE_WEIGHT_STEP.get();
         double damagePerStep = WeightConfig.COMMON.PROGRESSIVE_DAMAGE_PER_STEP.get();
 
-        int stepsOver = (int) ((weight - startWeight) / step);
-        return (float) (stepsOver * damagePerStep);
+        if (stepSize <= 0.0 || damagePerStep <= 0.0 || currentWeight <= 0.0) {
+            return 0.0f;
+        }
+
+        int stepsOver = (int) (currentWeight / stepSize);
+
+        float damage = (float) (stepsOver * damagePerStep);
+
+        float maxDamage = 10.0f;
+
+        return Math.min(damage, maxDamage);
     }
 }

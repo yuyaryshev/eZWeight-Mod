@@ -4,16 +4,13 @@ import com.armilp.ezweight.EZWeight;
 import com.armilp.ezweight.config.WeightConfig;
 import com.armilp.ezweight.player.PlayerWeightHandler;
 import com.armilp.ezweight.network.EZWeightNetwork;
-import com.armilp.ezweight.network.OpenWeightGuiPacket;
+import com.armilp.ezweight.network.gui.OpenWeightGuiPacket;
 import com.mojang.brigadier.Command;
-
 import com.mojang.brigadier.arguments.StringArgumentType;
-
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;

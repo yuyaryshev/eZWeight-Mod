@@ -88,7 +88,7 @@ public class ContainerEventHandler {
     }
 
     private static double dropSingleItemFromStack(ServerPlayer player, ItemStack stack, double currentWeight) {
-        double itemWeight = ItemWeightRegistry.getWeight(stack.getItem());
+        double itemWeight = ItemWeightRegistry.getWeight(stack);
 
         // Aquí se usa el peso dinámico en vez del estático
         while (currentWeight > DynamicMaxWeightCalculator.calculate(player) && stack.getCount() > 0) {
@@ -122,7 +122,7 @@ public class ContainerEventHandler {
                 ItemStack extracted = handler.extractItem(slot, 1, false);
                 if (!extracted.isEmpty()) {
                     player.drop(extracted, true);
-                    currentWeight -= ItemWeightRegistry.getWeight(extracted.getItem());
+                    currentWeight -= ItemWeightRegistry.getWeight(extracted);
                 } else {
                     break;
                 }
