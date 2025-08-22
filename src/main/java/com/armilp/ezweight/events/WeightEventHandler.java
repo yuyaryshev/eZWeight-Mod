@@ -23,19 +23,20 @@ public class WeightEventHandler {
 
         if (!(event.player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)) return;
 
-        // Si está deshabilitado para este jugador, eliminar efectos de peso
         if (!WeightCommands.isWeightEnabledFor(serverPlayer)) {
             removeWeightEffects(serverPlayer);
             return;
         }
 
         double totalWeight = PlayerWeightHandler.getTotalWeight(serverPlayer);
-        WeightLevel level = WeightLevelManager.getLevelForWeight(totalWeight);
+        WeightLevel currentLevel = WeightLevelManager.getLevelForWeight(totalWeight);
 
-        if (level == null) return;
+        if (currentLevel == null) {
+            removeWeightEffects(serverPlayer);
+            return;
+        }
 
-        // Quitar efectos anteriores que ya no son válidos
-        List<MobEffect> validEffects = level.effects().stream()
+        List<MobEffect> validEffects = currentLevel.effects().stream()
                 .map(MobEffectInstance::getEffect)
                 .toList();
 
@@ -50,21 +51,18 @@ public class WeightEventHandler {
             serverPlayer.removeEffect(effect);
         }
 
-        // Aplicar los efectos necesarios
-        for (MobEffectInstance effectInstance : level.effects()) {
+        for (MobEffectInstance effectInstance : currentLevel.effects()) {
             MobEffect effect = effectInstance.getEffect();
-            MobEffectInstance current = serverPlayer.getEffect(effect);
+            MobEffectInstance currentEffect = serverPlayer.getEffect(effect);
 
-            // Aplicar si no existe o si el amplificador cambió
-            if (current == null || current.getAmplifier() != effectInstance.getAmplifier()) {
-                // Usa duración larga (por ejemplo, 6000 ticks = 5 minutos)
+            if (currentEffect == null || currentEffect.getAmplifier() != effectInstance.getAmplifier()) {
                 serverPlayer.addEffect(new MobEffectInstance(
                         effect,
                         6000,
                         effectInstance.getAmplifier(),
-                        true, // ambient
-                        false, // showParticles
-                        true  // showIcon
+                        true,
+                        false,
+                        true
                 ));
             }
         }
