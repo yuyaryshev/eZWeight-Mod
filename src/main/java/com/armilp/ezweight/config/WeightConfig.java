@@ -1,4 +1,6 @@
 package com.armilp.ezweight.config;
+import com.armilp.ezweight.player.DynamicMaxWeightCalculator;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -29,14 +31,20 @@ public class WeightConfig {
         public final ForgeConfigSpec.DoubleValue BASE_WEIGHT;
         public final ForgeConfigSpec.DoubleValue MAX_WEIGHT;
         public final ForgeConfigSpec.BooleanValue USE_DYNAMIC_WEIGHT;
+        public final ForgeConfigSpec.BooleanValue DYN_FOOD_ENABLED;
+        public final ForgeConfigSpec.DoubleValue DYN_FOOD_INFLUENCE_MULTIPLIER;
+        public final ForgeConfigSpec.BooleanValue DYN_STRENGTH_ENABLED;
+        public final ForgeConfigSpec.DoubleValue DYN_STRENGTH_BONUS;
+        public final ForgeConfigSpec.BooleanValue DYN_CROUCH_ENABLED;
+        public final ForgeConfigSpec.DoubleValue DYN_CROUCH_BONUS;
+        public final ForgeConfigSpec.BooleanValue DYN_ARMOR_PENALTY_ENABLED;
+        public final ForgeConfigSpec.DoubleValue DYN_ARMOR_PENALTY_PER_PIECE;
+
         public final ForgeConfigSpec.BooleanValue NO_JUMP_WEIGHT_ENABLED;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> NO_JUMP_WEIGHT_RANGES;
         public final ForgeConfigSpec.BooleanValue DAMAGE_OVERWEIGHT_ENABLED;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> DAMAGE_OVERWEIGHT_THRESHOLDS;
         public final ForgeConfigSpec.DoubleValue DAMAGE_PER_SECOND;
-        public final ForgeConfigSpec.BooleanValue PROGRESSIVE_DAMAGE_ENABLED;
-        public final ForgeConfigSpec.DoubleValue PROGRESSIVE_WEIGHT_STEP;
-        public final ForgeConfigSpec.DoubleValue PROGRESSIVE_DAMAGE_PER_STEP;
         public final ForgeConfigSpec.BooleanValue FORCE_SNEAK_ENABLED;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> FORCE_SNEAK_WEIGHT_RANGES;
 
@@ -77,6 +85,36 @@ public class WeightConfig {
 
             builder.pop();
 
+            builder.push("DynamicWeight");
+            DYN_FOOD_ENABLED = builder
+                    .comment("If true, food level affects max carry weight.")
+                    .define("food_enabled", true);
+            DYN_FOOD_INFLUENCE_MULTIPLIER = builder
+                    .comment("Multiplier for food influence (0.0 disables its effect while enabled). 1.0 = default.")
+                    .defineInRange("food_influence_multiplier", 1.0, 0.0, 5.0);
+
+            DYN_STRENGTH_ENABLED = builder
+                    .comment("If true, Strength effect grants a flat bonus.")
+                    .define("strength_enabled", true);
+            DYN_STRENGTH_BONUS = builder
+                    .comment("Flat bonus applied when Strength effect is active.")
+                    .defineInRange("strength_bonus", 10.0, -1000.0, 1000.0);
+
+            DYN_CROUCH_ENABLED = builder
+                    .comment("If true, crouching grants a flat bonus.")
+                    .define("crouch_enabled", true);
+            DYN_CROUCH_BONUS = builder
+                    .comment("Flat bonus applied while crouching.")
+                    .defineInRange("crouch_bonus", 5.0, -1000.0, 1000.0);
+
+            DYN_ARMOR_PENALTY_ENABLED = builder
+                    .comment("If true, each worn armor piece applies a penalty.")
+                    .define("armor_penalty_enabled", true);
+            DYN_ARMOR_PENALTY_PER_PIECE = builder
+                    .comment("Penalty per worn armor piece.")
+                    .defineInRange("armor_penalty_per_piece", 2.5, -1000.0, 1000.0);
+            builder.pop();
+
             builder.push("NoJump");
             NO_JUMP_WEIGHT_ENABLED = builder
                     .define("no_jump_weight_enabled", true);
@@ -107,16 +145,6 @@ public class WeightConfig {
             DAMAGE_PER_SECOND = builder
                     .comment("Damage per second while overweight.")
                     .defineInRange("damage_per_second", 1.4, 0.0, 100.0);
-
-            PROGRESSIVE_DAMAGE_ENABLED = builder.define("progressive_damage_enabled", false);
-
-            PROGRESSIVE_WEIGHT_STEP = builder
-                    .comment("Weight units per extra damage step.")
-                    .defineInRange("progressive_weight_step", 0.05, 0.0, 100000.0);
-
-            PROGRESSIVE_DAMAGE_PER_STEP = builder
-                    .comment("Extra damage per step when progressive is enabled.")
-                    .defineInRange("progressive_damage_per_step", 0.8, 0.0, 100.0);
             builder.pop();
 
             builder.push("ForceSneak");
@@ -129,7 +157,7 @@ public class WeightConfig {
                             val -> isValidDoubleOrMax(val));
             builder.pop();
 
-            builder.push("TACZ GunWeight");
+            builder.push("TACZGunWeight");
             ATTACHMENT_WEIGHT_ENABLED = builder
                     .comment("If true, includes attachments' configured weight in gun total weight.")
                     .define("attachment_weight_enabled", true);
@@ -163,6 +191,21 @@ public class WeightConfig {
 
     public static double parseWeightValue(String s) {
         if (s.equalsIgnoreCase("max")) {
+            return COMMON.MAX_WEIGHT.get();
+        }
+
+        try {
+            return Double.parseDouble(s);
+        } catch (NumberFormatException e) {
+            return 0.0;
+        }
+    }
+
+    public static double parseWeightValue(String s, Player player) {
+        if (s.equalsIgnoreCase("max")) {
+            if (player != null) {
+                return DynamicMaxWeightCalculator.calculate(player);
+            }
             return COMMON.MAX_WEIGHT.get();
         }
 
