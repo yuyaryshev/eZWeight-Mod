@@ -80,23 +80,10 @@ public class WeightDamage {
     }
 
     private static float calculateDamage(double currentWeight, double maxWeight) {
-        if (!WeightConfig.COMMON.PROGRESSIVE_DAMAGE_ENABLED.get()) {
-            return WeightConfig.COMMON.DAMAGE_PER_SECOND.get().floatValue();
-        }
-
-        double stepSize = WeightConfig.COMMON.PROGRESSIVE_WEIGHT_STEP.get();
-        double damagePerStep = WeightConfig.COMMON.PROGRESSIVE_DAMAGE_PER_STEP.get();
-
-        if (stepSize <= 0.0 || damagePerStep <= 0.0 || currentWeight <= 0.0) {
+        if (!WeightConfig.COMMON.DAMAGE_OVERWEIGHT_ENABLED.get()) {
             return 0.0f;
         }
 
-        int stepsOver = (int) (currentWeight / stepSize);
-
-        float damage = (float) (stepsOver * damagePerStep);
-
-        float maxDamage = 10.0f;
-
-        return Math.min(damage, maxDamage);
+        return WeightConfig.COMMON.DAMAGE_PER_SECOND.get().floatValue();
     }
 }
