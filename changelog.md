@@ -1,9 +1,15 @@
-### 📦 Version 1.5.4
+### 📦 Version 1.6.4
 
-- ⚖️ Reworked player weight calculation: [BETA] **_DO NOT ENABLE THIS, IT IS NOT FINISHED YET!_**
-  - Now the player has a minium (Base Weight) and maximum (MAX) weight.
-  - Based on food level, strength effect, crouching, and equipped armor. _[Its possible to disable this in config]_
-- 🔧 Fixed main HUD positioning issues.
-- 🔫 Now compatible with the Guns of TACZ (Timeless and Classics Zero). [If you want to add more guns, you need to do it manually in the items.json]
+- ⚖️ Reworked player weight calculation: [NEW]
+  - Added config option to choose between old and new weight calculation.
+  - Added config options for food, strength, crouch, and armor weight multipliers.
+- 🔫 TACZ Compatibility:
+  - Now FULL compatible with the Guns, Ammo and Attachments. (Addons not tested yet)
+  - Added extra weight to the guns when you have attachments and ammo.
+  
+  Note: **Dont use MultiEdit to change the weight of the guns, ammo and attachments, it will not work.**
+- 🔄️ Change default HUD anchor to LEFT.
+- 🔧 ItemTooltip Config - Added option to show/hide item weight and change colors.
+
 
 ### Support for issues and suggestions: [Discord](https://discord.gg/5UaxV2rtqz)

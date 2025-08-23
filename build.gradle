@@ -1,4 +1,4 @@
-import net.darkhax.curseforgegradle.TaskPublishCurseForge
+import net.darkhax.curseforgegradle.TaskPublishCurseForge;
 
 plugins {
     id 'eclipse'
@@ -133,6 +133,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     mainFile.addOptional("sophisticated-backpacks")
     mainFile.addOptional("travelers-backpack")
     mainFile.addOptional("curios")
+    mainFile.addOptional("timeless-and-classics-zero")
 }
 
 modrinth {
@@ -151,6 +152,7 @@ modrinth {
         optional.project 'sophisticated-backpacks'
         optional.project 'travelersbackpack'
         optional.project 'curios'
+        optional.project 'timeless-and-classics-zero'
     }
 }
 

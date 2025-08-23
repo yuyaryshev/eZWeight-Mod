@@ -34,10 +34,6 @@ public class EZWeight {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, WeightConfig.COMMON_SPEC, "ezweight/config.toml");
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, WeightConfig.CLIENT_SPEC, "ezweight/client_config.toml");
 
-
-
-
-
         modEventBus.addListener(this::commonSetup);
         MinecraftForge.EVENT_BUS.register(this);
     }
@@ -55,13 +51,5 @@ public class EZWeight {
     public void onServerStarting(ServerStartingEvent event) {
         LOGGER.info("EZWeight mod loaded on {}", FMLEnvironment.dist);
 
-    }
-
-    @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static class ClientModEvents {
-
-        @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event) {
-        }
     }
 }
