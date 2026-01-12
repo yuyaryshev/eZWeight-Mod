@@ -14,9 +14,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = "ezweight", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -41,10 +41,10 @@ public class WeightHudOverlay {
     private static float alpha = 0f;
     private static final float FADE_SPEED = 0.05f;
 
-    @SubscribeEvent
-    public static void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRenderScreen(ScreenEvent.Render.Post event) {
         Minecraft mc = Minecraft.getInstance();
-        if (!(mc.screen instanceof InventoryScreen) || mc.player == null || mc.options.hideGui) return;
+        if (!(event.getScreen() instanceof InventoryScreen) || mc.player == null || mc.options.hideGui) return;
 
         CompoundTag data = mc.player.getPersistentData();
         boolean visible = data.getBoolean(NBT_KEY_HUD_VISIBLE);
